@@ -170,13 +170,14 @@ CPU_TEST_FAILURES = {
     "test_issue_140766": fail_minimal_arrayref_interface(),
     "test_update_constant_buffer": fail_stack_allocation(is_skip=True),
     # fails on exit
-    # "test_pytree_inputs": fail_stack_allocation(is_skip=True),
-    # "test_simple_split": fail_stack_allocation(is_skip=True),
-    # "test_no_args": fail_stack_allocation(is_skip=True),
-    # "test_view_outputs": fail_stack_allocation(is_skip=True),
-    # "test_fqn": fail_stack_allocation(is_skip=True),
-    # "test_output_misaligned": fail_stack_allocation(is_skip=True),
-    # "test_seq": fail_stack_allocation(is_skip=True),
+    "test_simple_split": fail_stack_allocation(is_skip=True),
+    "test_view_outputs": fail_stack_allocation(is_skip=True),
+    "test_pytree_inputs": fail_stack_allocation(is_skip=True),
+    "test_duplicated_params": fail_stack_allocation(is_skip=True),
+    "test_seq": fail_stack_allocation(is_skip=True),
+    "test_output_misaligned": fail_stack_allocation(is_skip=True),
+    "test_no_args": fail_stack_allocation(is_skip=True),
+    "test_fqn": fail_stack_allocation(is_skip=True),
 }
 
 
