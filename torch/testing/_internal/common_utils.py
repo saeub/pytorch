@@ -1445,7 +1445,6 @@ def split_if_not_empty(x: str):
 
 NOTEST_CPU = "cpu" in split_if_not_empty(os.getenv('PYTORCH_TESTING_DEVICE_EXCEPT_FOR', ''))
 
-skipIfACL = unittest.skipIf(TEST_ACL, "ACL is not supported")
 skipIfNoDill = unittest.skipIf(not TEST_DILL, "no dill")
 
 
@@ -1582,6 +1581,8 @@ if TEST_WITH_TORCHDYNAMO:
         import torch._inductor.config
         torch._inductor.config.fallback_random = True
 
+def xfailIfACL(func):
+    return unittest.expectedFailure(func) if TEST_ACL else func
 
 def xpassIfTorchDynamo(func):
     return func if TEST_WITH_TORCHDYNAMO else unittest.expectedFailure(func)

@@ -25,7 +25,7 @@ from torch.testing._internal.common_utils import (
     parametrize,
     skipIfNoXPU,
     skipIfRocm,
-    skipIfACL,
+    xfailIfACL,
     TEST_MKL,
     TEST_ACL,
 )
@@ -2629,7 +2629,7 @@ class TestPatternMatcher(TestPatternMatcherBase):
             v = torch.randn(1, 3, 28, 28)
             self._test_common(mod, (v,), 2, 3)
 
-    @skipIfACL
+    @xfailIfACL
     def test_conv2d_binary_inplace_fusion_pass_cpu(
         self, include_ops=None, exclude_ops=None
     ):
@@ -2681,7 +2681,7 @@ class TestPatternMatcher(TestPatternMatcherBase):
         for other, mod in zip(others, [mod_v1, mod_v2]):
             self._test_code_common(mod, (input, other), include_ops, exclude_ops)
 
-    @skipIfACL
+    @xfailIfACL
     def test_conv2d_binary_inplace_fusion_failed_cpu(
         self, include_ops=None, exclude_ops=None
     ):
@@ -2838,7 +2838,7 @@ class TestPatternMatcher(TestPatternMatcherBase):
         mod = Model3().to(memory_format=torch.channels_last).eval()
         self._test_code_common(mod, (input,), include_ops, exclude_ops)
 
-    @skipIfACL
+    @xfailIfACL
     def test_reproduce_99842_issue(self):
         class Model(torch.nn.Module):
             def __init__(self) -> None:
@@ -2950,7 +2950,7 @@ class TestPatternMatcher(TestPatternMatcherBase):
             om(*example_inputs)
             om(*example_inputs)
 
-    @skipIfACL
+    @xfailIfACL
     @torch._dynamo.config.patch("inline_inbuilt_nn_modules", True)
     def test_reproduce_121253_issue_addmm_fusion_check(self):
         class Mod(torch.nn.Module):
@@ -3099,7 +3099,7 @@ class TestDynamicPatternMatcher(TestPatternMatcherBase):
             match_nodes = 19
             self._test_common(mod, (v,), match_count, match_nodes, rtol=1e-2, atol=1e-2)
 
-    @skipIfACL
+    @xfailIfACL
     def test_qconv2d_maxpool2d_linear_dynamic_cpu(self, include_ops=None):
         r"""
         This testcase will quantize a single Conv2d->Maxpool2d->Linear module
