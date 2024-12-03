@@ -8,7 +8,7 @@ import sympy
 from .. import ir
 from ..select_algorithm import PartialRender
 from ..virtualized import V
-from .cpp_gemm_template import CppGemmTemplate, GEMM_TEMPLATE, MICROKERNEL_DEF
+from .cpp_gemm_template import CppGemmTemplate, GEMM_TEMPLATE
 from .cpp_micro_gemm import LayoutType
 from .cpp_template_kernel import CppTemplateKernel
 from .cpp_utils import DTYPE_TO_CPP, GemmBlocking
@@ -21,7 +21,7 @@ GEMM_SINGLE_THREAD_MM_STUB = r"""
     aliases=aliases,
     function_name="single_thread_mm",
     extra_sizevars=[b_index],
-    placeholder="<SINGLE_THREAD_DEF_MM_FOR_BMM>")}}"""
+    placeholder="<SINGLE_THREAD_MM_DEF_FOR_BMM>")}}"""
 
 GEMM_THREADED_MM_STUB = r"""
 {{kernel.def_kernel(
@@ -32,7 +32,11 @@ GEMM_THREADED_MM_STUB = r"""
     extra_sizevars=[b_index],
     placeholder="<THREADED_MM_DEF_FOR_BMM>")}}"""
 
-BMM_WRAPPER = r"""
+BMM_TEMPLATE = r"""
+{{ template.codegen_microkernel_def() }}
+{{ template.codegen_single_thread_gemm() }}
+{{ template.codegen_multi_thread_gemm() }}
+
 extern "C"
 {{kernel.def_kernel(inputs={"X": BX, "W": BW}, outputs={"Y": BY}, aliases=aliases)}}
 {
@@ -201,20 +205,14 @@ class CppBmmTemplate(CppGemmTemplate):
             epilogue_nodes=epilogue_nodes,
             **kwargs,
         )
+        self.render_options = options
 
         with contextlib.ExitStack() as stack:
             for buf in options["fake_buffers"]:
                 stack.enter_context(
                     patch.object(V.graph, "get_dtype", self._fake_get_dtype(buf))
                 )
-            result = self._template_from_string(MICROKERNEL_DEF).render(**options)
-            result += self._template_from_string(
-                GEMM_THREADED_MM_STUB + GEMM_TEMPLATE
-            ).render(**options)
-            result += self._template_from_string(
-                GEMM_SINGLE_THREAD_MM_STUB + GEMM_TEMPLATE
-            ).render(**{**options, "num_threads": 1})
-            result += self._template_from_string(BMM_WRAPPER).render(**options)
+            result = self._template_from_string(BMM_TEMPLATE).render(**options)
 
             # Finalize the function definitions for the gemm routines
             sub_mm_hooks = {
@@ -227,3 +225,22 @@ class CppBmmTemplate(CppGemmTemplate):
                 del kernel.render_hooks[name]
             del kernel.args.sizevars[options["b_index"]]
             return result
+
+    def codegen_single_thread_gemm(self):
+        stub = self._template_from_string(GEMM_SINGLE_THREAD_MM_STUB).render(
+            self.render_options
+        )
+        return stub + self._template_from_string(GEMM_TEMPLATE).render(
+            {**self.render_options, "num_threads": 1}
+        )
+
+    def codegen_multi_thread_gemm(self):
+        stub = self._template_from_string(GEMM_THREADED_MM_STUB).render(
+            self.render_options
+        )
+        return stub + self._template_from_string(GEMM_TEMPLATE).render(
+            self.render_options
+        )
+
+    def codegen_gemm_stub_def(self):
+        return ""
