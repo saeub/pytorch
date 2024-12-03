@@ -721,6 +721,7 @@ class SymmMemAllReduceTest(MultiProcessTestCase):
 
         dist.destroy_process_group()
 
+    @skipIfRocm
     @skip_if_lt_x_gpu(4)
     @parametrize("dtype", [torch.float, torch.bfloat16])
     @parametrize("align_bytes", [4, 8, 16])
@@ -744,6 +745,7 @@ class SymmMemAllReduceTest(MultiProcessTestCase):
 
         dist.destroy_process_group()
 
+    @skipIfRocm
     @skip_if_lt_x_gpu(4)
     @parametrize("dtype", [torch.float, torch.bfloat16])
     @parametrize("align_bytes", [4, 8, 16])
