@@ -122,6 +122,18 @@ void Context::setAllowTF32CuDNN(bool b) {
   allow_tf32_cudnn = b;
 }
 
+bool Context::allowTF32OneDNN() const {
+  return allow_tf32_onednn;
+}
+
+void Context::setAllowTF32OneDNN(bool b){
+#ifdef USE_XPU
+  allow_tf32_onednn = b;
+#else
+  TORCH_WARN("oneDNN TF32 computation is only valid at GPU currently, please make sure the PyTorch is built with USE_XPU=ON.")
+#endif
+}
+
 bool Context::userEnabledFlashSDP() const {
   return enabled_flashSDP;
 }
