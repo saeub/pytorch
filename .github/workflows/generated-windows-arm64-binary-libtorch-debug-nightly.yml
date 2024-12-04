@@ -87,31 +87,31 @@ jobs:
       - name: Bootstrap Python
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_python.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_python.bat"
       - name: Bootstrap Build Tools
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_buildtools.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_buildtools.bat"
       - name: Bootstrap APL
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_apl.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_apl.bat"
       - name: Bootstrap Rust
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_rust.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_rust.bat"
       - name: Bootstrap sccache
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_sccache.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_sccache.bat"
       - name: Populate binary env
         shell: bash
         run: |
-          "${PYTORCH_ROOT}/.circleci/scripts/binary_populate_env.sh"
+          "pytorch/.circleci/scripts/binary_populate_env.sh"
       - name: Build PyTorch binary
         shell: bash
         run: |
-          "${PYTORCH_ROOT}/.circleci/scripts/binary_windows_arm64_build.sh"
+          "pytorch/.circleci/scripts/binary_windows_arm64_build.sh"
       - uses: actions/upload-artifact@v4.4.0
         if: always()
         with:
@@ -164,15 +164,15 @@ jobs:
       - name: Bootstrap Git
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_git.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_git.bat"
       - name: Populate binary env
         shell: bash
         run: |
-          "${PYTORCH_ROOT}/.circleci/scripts/binary_populate_env.sh"
+          "pytorch/.circleci/scripts/binary_populate_env.sh"
       - name: Test PyTorch binary
         shell: bash
         run: |
-          "${PYTORCH_ROOT}/.circleci/scripts/binary_windows_arm64_test.sh"
+          "pytorch/.circleci/scripts/binary_windows_arm64_test.sh"
   libtorch-cpu-shared-with-deps-debug-upload:  # Uploading
     if: ${{ github.repository_owner == 'pytorch' }}
     permissions:
