@@ -1,5 +1,6 @@
 # Owner(s): ["module: inductor"]
 import copy
+import io
 import sys
 import tempfile
 import unittest
@@ -328,6 +329,27 @@ class TestAOTInductorPackage(TestCase):
             package_path = package_aoti(f.name, {"model1": aoti_files})
             loaded = load_package(package_path, "model1")
         assert torch.allclose(loaded(*example_inputs), ep.module()(*example_inputs))
+
+    def test_save_buffer(self):
+        class Model(torch.nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+
+            def forward(self, a, b):
+                return torch.cat([a, b], dim=0)
+
+        example_inputs = (
+            torch.randn(2, 4, device=self.device),
+            torch.randn(3, 4, device=self.device),
+        )
+        ep = torch.export.export(Model(), example_inputs)
+
+        buffer = io.BytesIO()
+        package_path = torch._inductor.aoti_compile_and_package(
+            ep, package_path=buffer
+        )  # type: ignore[arg-type]
+        loaded = load_package(package_path)
+        return loaded
 
 
 if __name__ == "__main__":
