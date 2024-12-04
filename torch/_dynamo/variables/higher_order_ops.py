@@ -749,6 +749,8 @@ class TorchHigherOrderOperatorVariable(VariableTracker):
             return AutoFunctionalizeHigherOrderVariable(value, source, **kwargs)
         elif value.__name__ == "invoke_subgraph":
             return InvokeSubgraphHigherOrderVariable(value, source, **kwargs)
+        elif value.__name__ == "foreach_map":
+            return ForeachMapVariable(value, source, **kwargs)
         elif isinstance(value, PrimHOPBase):
             return PrimHOPBaseVariable(value, source, **kwargs)
         else:
@@ -2819,6 +2821,17 @@ class PrimHOPBaseVariable(WrapHigherOrderVariable):
         return _call_function_and_unflatten_output(
             tx, self.value, p_args, p_kwargs, flat_example_value, treespec
         )
+
+
+class ForeachMapVariable(PrimHOPBaseVariable):
+    def call_function(
+        self,
+        tx: "InstructionTranslator",
+        args: "List[VariableTracker]",
+        kwargs: "Dict[str, VariableTracker]",
+    ) -> "VariableTracker":
+        # args =  [SourcelessBuilder.create(tx, foreach_map_fn), args[0]]
+        return super().call_function(tx, args, kwargs)
 
 
 class InvokeSubgraphHigherOrderVariable(WrapHigherOrderVariable):

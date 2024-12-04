@@ -690,6 +690,11 @@ def to_dtype(x: TensorBox, dtype: torch.dtype, copy=False):
     return make_pointwise(_to_dtype, override_return_dtype=dtype)(x)
 
 
+@register_lowering(torch._higher_order_ops._foreach_map)
+def _foreach_map(*args, **kwargs):
+    breakpoint()
+
+
 @register_lowering(prims.convert_element_type, type_promotion_kind=None)
 def _convert_element_type(x: TensorBox, dtype: torch.dtype):
     if dtype.is_complex or x.get_dtype().is_complex:

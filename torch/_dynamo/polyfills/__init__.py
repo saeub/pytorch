@@ -177,6 +177,15 @@ def instantiate_user_defined_class_object(cls, /, *args, **kwargs):
     return obj
 
 
+def foreach_map_fn(*args):
+    op = args[0]
+    operands = args[1:]
+    out = []
+    for l, r in zip(*operands):
+        out.append(op(l, r))
+    return out
+
+
 def foreach_lerp_inplace(self, end, weight):
     # decompose foreach lerp into constituent ops, prevents a graph break due to
     # converting a value to a scalar when arg[2] is a single tensor
