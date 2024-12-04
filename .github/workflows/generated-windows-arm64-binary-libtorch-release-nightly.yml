@@ -69,12 +69,13 @@ jobs:
           echo BINARY_ENV_FILE=%RUNNER_TEMP%/env>> %GITHUB_ENV%
           echo PYTORCH_FINAL_PACKAGE_DIR=%RUNNER_TEMP%/artifacts>> %GITHUB_ENV%
           echo WIN_PACKAGE_WORK_DIR=%RUNNER_TEMP%>> %GITHUB_ENV%
-      - name: Git checkout Builder
+      - name: Git checkout PyTorch
         uses: actions/checkout@v4
         with:
-          repository:  "ozanMSFT/builder"
-          ref: "users/ozanMSFT/win-arm64"
-          path: "builder"
+          repository:  "iremyux/pytorch"
+          ref: "nightly-for-win-arm64"
+          path: "pytorch"
+          submodules: recursive
       - name: Bootstrap folders
         shell: cmd
         run: |
@@ -83,34 +84,27 @@ jobs:
       - name: Bootstrap Git
         shell: cmd
         run: |
-          "builder/windows/arm64/bootstrap_git.bat"
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_git.bat"
       - name: Bootstrap Python
         shell: cmd
         run: |
-          "builder/windows/arm64/bootstrap_python.bat"
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_python.bat"
       - name: Bootstrap Build Tools
         shell: cmd
         run: |
-          "builder/windows/arm64/bootstrap_buildtools.bat"
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_buildtools.bat"
       - name: Bootstrap APL
         shell: cmd
         run: |
-          "builder/windows/arm64/bootstrap_apl.bat"
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_apl.bat"
       - name: Bootstrap Rust
         shell: cmd
         run: |
-          "builder/windows/arm64/bootstrap_rust.bat"
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_rust.bat"
       - name: Bootstrap sccache
         shell: cmd
         run: |
-          "builder/windows/arm64/bootstrap_sccache.bat"
-      - name: Git checkout PyTorch
-        uses: actions/checkout@v4
-        with:
-          repository:  "iremyux/pytorch"
-          ref: "nightly-for-win-arm64"
-          path: "pytorch"
-          submodules: recursive
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_sccache.bat"
       - name: Populate binary env
         shell: bash
         run: |
@@ -162,23 +156,17 @@ jobs:
         with:
           name: libtorch-cpu-shared-with-deps-release
           path: "${{ env.PYTORCH_FINAL_PACKAGE_DIR }}"
-      - name: Git checkout Builder
-        uses: actions/checkout@v4
-        with:
-          repository:  "ozanMSFT/builder"
-          ref: "users/ozanMSFT/win-arm64"
-          path: "builder"    
-      - name: Bootstrap Git
-        shell: cmd
-        run: |
-          "builder/windows/arm64/bootstrap_git.bat"  
       - name: Git checkout PyTorch
         uses: actions/checkout@v4
         with:
           repository:  "iremyux/pytorch"
           ref: "nightly-for-win-arm64"
           path: "pytorch"
-          submodules: recursive
+          submodules: recursive    
+      - name: Bootstrap Git
+        shell: cmd
+        run: |
+          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_git.bat"
       - name: Populate binary env
         shell: bash
         run: |
