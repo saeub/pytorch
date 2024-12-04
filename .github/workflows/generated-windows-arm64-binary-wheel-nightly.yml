@@ -78,6 +78,7 @@ jobs:
           mkdir "%NIGHTLIES_PYTORCH_ROOT%"
           mkdir "%PYTORCH_FINAL_PACKAGE_DIR%"
       -name: Print dir structure
+        shell: cmd
         run: |
           dir
       - name: Bootstrap Git
