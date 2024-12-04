@@ -357,7 +357,7 @@ class StepcurrentPlugin:
         self.prev_run = init_cache["prev_run"] if init_cache else []
         self.to_run = init_cache["to_run"] if init_cache else []
         self.already_ran = init_cache["already_ran"] if init_cache else []
-        self.end_at = active_cache["ended_at"] if active_cache else None
+        self.ended_at = active_cache["ended_at"] if active_cache else None
         self.pytest_previous_status = (
             active_cache["pytest_previous_status"] if active_cache else None
         )
