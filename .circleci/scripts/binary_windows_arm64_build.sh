@@ -10,9 +10,9 @@ df -h
 export NIGHTLIES_PYTORCH_ROOT="$PYTORCH_ROOT"
 
 if [[ "$PACKAGE_TYPE" == 'libtorch' ]]; then
-    $BUILDER_ROOT/windows/arm64/build_libtorch.bat
+    $PYTORCH_ROOT/.ci/windows_arm64/build_libtorch.bat
 elif [[ "$PACKAGE_TYPE" == 'wheel' ]]; then
-    $BUILDER_ROOT/windows/arm64/build_pytorch.bat
+    $PYTORCH_ROOT/.ci/windows_arm64/build_pytorch.bat
 fi
 
 echo "Free space on filesystem after build:"
