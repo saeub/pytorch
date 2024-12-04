@@ -7175,7 +7175,6 @@ for shape in [(1,), ()]:
                 out = checkpoint(fn, a, use_reentrant=False, debug=True)
                 out.backward()
 
-    @xfailIfS390X
     def test_access_saved_tensor_twice_without_recomputation_works(self):
         count = [0]
 
