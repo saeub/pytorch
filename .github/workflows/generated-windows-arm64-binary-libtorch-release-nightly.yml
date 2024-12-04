@@ -83,7 +83,7 @@ jobs:
       - name: Bootstrap Git
         shell: cmd
         run: |
-          "${PYTORCH_ROOT}/.ci/windows_arm64/bootstrap_git.bat"
+          "pytorch/.ci/windows_arm64/bootstrap_git.bat"
       - name: Bootstrap Python
         shell: cmd
         run: |
