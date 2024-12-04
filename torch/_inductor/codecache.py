@@ -84,6 +84,8 @@ T = TypeVar("T")
 if TYPE_CHECKING:
     from collections.abc import KeysView
 
+    from torch.fx import GraphModule
+
     from .compile_fx import _CompileFxKwargs, CompiledFxGraph
     from .output_code import OutputCode
     from .remote_cache import JsonDataTy, RemoteCache
@@ -784,7 +786,7 @@ class FxGraphHashDetails:
 
     def __init__(
         self,
-        gm: torch.fx.GraphModule,
+        gm: GraphModule,
         example_inputs: Sequence[InputType],
         fx_kwargs: _CompileFxKwargs,
         inputs_to_check: Sequence[int],
@@ -886,7 +888,7 @@ class FxGraphHashDetails:
 
 
 def compiled_fx_graph_hash(
-    gm: torch.fx.GraphModule,
+    gm: GraphModule,
     example_inputs: Sequence[InputType],
     fx_kwargs: _CompileFxKwargs,
     inputs_to_check: Sequence[int],
@@ -1191,25 +1193,6 @@ class FxGraphCache:
         if graph is None:
             return None, cache_info
 
-        # See _save_graph(); we don't store the callable in the cache entry so
-        # recreate it here from the PyCodeCache disk cache.
-        artifact_path = get_path(graph.cache_key, "py")[2]
-        code = graph.source_code
-        if not os.path.exists(artifact_path):
-            counters["inductor"]["fxgraph_lookup_write_file"] += 1
-            Path(os.path.dirname(artifact_path)).mkdir(parents=True, exist_ok=True)
-            cpp_pp = cpp_prefix_path()
-            if os.path.basename(cpp_pp) in code:
-                if cpp_pp in code:
-                    # Great the name is correct
-                    pass
-                else:
-                    # Old dir name is included, replace it
-                    pattern = rf'#include\s*"[^"]+{os.path.basename(cpp_pp)}"'
-                    code = re.sub(pattern, f'#include "{cpp_pp}"', code)
-
-            write_atomic(artifact_path, code, make_dirs=True)
-
         if bundle := graph._triton_bundle:
             triton_bundler_meta = TritonBundler.read_and_emit(bundle)
             if (meta := triton_bundler_meta) is not None:
@@ -1223,24 +1206,16 @@ class FxGraphCache:
                 if len(meta.cached_kernel_names) > 0:
                     get_metrics_context().increment("num_triton_bundles", 1)
 
-        inductor_meta = autotune_cache.inductor_meta_from_config()
-        AutotuneCacheBundler.begin_compile(inductor_meta, code=code)
-
         try:
-            with dynamo_timed(
-                "PyCodeCache.load_by_key_path", log_pt2_compile_event=True
-            ):
-                graph.current_callable = PyCodeCache.load_by_key_path(
-                    graph.cache_key,
-                    artifact_path,
-                    graph.cache_linemap,
-                    graph.get_constants(gm),
-                ).call
+            artifact_path = graph.after_deserialization(gm)
         except OSError:
             # Not expected, but in case the PyCodeCache entry is removed from
             # underneath us, treat it as a cache miss and recompile.
-            log.error("Failed to load cached artifact: %s", artifact_path)
             return None, cache_info
+
+        inductor_meta = autotune_cache.inductor_meta_from_config()
+        code = graph.source_code
+        AutotuneCacheBundler.begin_compile(inductor_meta, code=code)
 
         # Now re-evaluate with the symints to add any guards to the current env.
         if graph.guards_expr:
@@ -1258,9 +1233,6 @@ class FxGraphCache:
         metrics.CachedMetricsHelper.apply_deltas(graph.metrics_deltas)
         counters["inductor"] += graph.counter_deltas
 
-        from .graph import GraphLowering
-
-        GraphLowering.save_output_code(code)
         output_code_log.debug("Output code written to: %s", artifact_path)
         output_code_log.debug("Output code: \n%s", code)
         # On cache hit, use artifact path as filename
@@ -1336,11 +1308,7 @@ class FxGraphCache:
             compiled_graph, CompiledFxGraph
         ), f"serialization for {type(compiled_graph)} NYI"
         disk_compiled_graph = copy(compiled_graph)
-        # We can't really serialize callables that may be C++/Triton/etc.,
-        # so we serialize their PyCodeCache disk cache location instead.
-        # TODO: This could be better if we're ever able to serialize compiled
-        # models to disk.
-        disk_compiled_graph.current_callable = None
+        disk_compiled_graph.prepare_for_serialization()
 
         # Before serializing, compute the guard expression that will be used to
         # ensure that a CompiledFxGraph is valid when loaded from the cache. It's
@@ -1388,7 +1356,22 @@ class FxGraphCache:
             counters["inductor"]["fxgraph_cache_write_error"] += 1
 
     @staticmethod
-    def _check_can_cache(gm: torch.fx.GraphModule) -> None:
+    def _check_for_hop(gm: GraphModule) -> None:
+        for node in gm._for_each_node():
+            if (
+                isinstance(node.target, torch._ops.HigherOrderOperator)
+                and not node.target.cacheable()
+            ):
+                raise BypassFxGraphCache(
+                    f"Can't cache HigherOrderOperator: {node.target.name()}"
+                )
+            if node.op == "getattr" and isinstance(
+                getattr(gm, node.target), torch._C.ScriptObject
+            ):
+                raise BypassFxGraphCache("Can't cache torchbind objects")
+
+    @staticmethod
+    def _check_can_cache(gm: GraphModule) -> None:
         """
         Check some conditions that would preclude caching and raise BypassFxGraphCache
         to bypass in case caching is not possible.
@@ -1425,26 +1408,12 @@ class FxGraphCache:
             log.debug("fx graph cache no shape env")
             raise BypassFxGraphCache("No shape env")
 
-        # We skip caching if there are any torchbind objects.
-        for module in gm.modules():
-            if not isinstance(module, torch.fx.GraphModule):
-                continue
-            for node in module.graph.nodes:
-                if (
-                    isinstance(node.target, torch._ops.HigherOrderOperator)
-                    and not node.target.cacheable()
-                ):
-                    raise BypassFxGraphCache(
-                        f"Can't cache HigherOrderOperator: {node.target.name()}"
-                    )
-                if node.op == "getattr" and isinstance(
-                    getattr(gm, node.target), torch._C.ScriptObject
-                ):
-                    raise BypassFxGraphCache("Can't cache torchbind objects")
+        # We skip caching if there are any HOPs or torchbind objects.
+        FxGraphCache._check_for_hop(gm)
 
     @staticmethod
     def prepare_key(
-        gm: torch.fx.GraphModule,
+        gm: GraphModule,
         example_inputs: Sequence[InputType],
         fx_kwargs: _CompileFxKwargs,
         inputs_to_check: Sequence[int],
