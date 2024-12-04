@@ -82,7 +82,6 @@ jobs:
           repository:  "iremyux/pytorch"
           ref: "nightly-for-win-arm64"
           path: "pytorch"
-          submodules: recursive
       - name: Bootstrap folders
         shell: cmd
         run: |
@@ -148,7 +147,6 @@ jobs:
           repository:  "iremyux/pytorch"
           ref: "nightly-for-win-arm64"
           path: "pytorch"
-          submodules: recursive    
       - name: Bootstrap Git
         shell: cmd
         run: |
